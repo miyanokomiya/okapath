@@ -22,6 +22,6 @@ pub fn greet() {
 }
 
 #[wasm_bindgen]
-pub fn getPathLength(d: String) -> f64 {
+pub fn getPathLength(d: &str) -> f64 {
     path::get_path_length(&parser::parse(d))
 }
