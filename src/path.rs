@@ -1,8 +1,14 @@
 // https://svgwg.org/specs/paths/#InterfaceSVGPathSegment
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct PathSegment {
     pub _type: String,
     pub values: Vec<f64>,
+}
+
+impl PathSegment {
+    pub fn new(_type: String, values: Vec<f64>) -> Self {
+        PathSegment { _type, values }
+    }
 }
 
 pub fn get_path_length(segments: &Vec<PathSegment>) -> f64 {
