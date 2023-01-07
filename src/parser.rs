@@ -1,10 +1,7 @@
 use crate::path::PathSegment;
 
-type ParserFn = fn(text: &Vec<char>, index: usize) -> Option<(String, usize)>;
-static PARSER_FN: [ParserFn; 2] = [parse_number, parse_command];
-
 pub fn parse(d: &str) -> Vec<PathSegment> {
-    vec![]
+    to_segments(&split(d))
 }
 
 fn to_segments(src: &Vec<String>) -> Vec<PathSegment> {
@@ -71,6 +68,9 @@ fn is_command(text: &str) -> bool {
         _ => false,
     }
 }
+
+type ParserFn = fn(text: &Vec<char>, index: usize) -> Option<(String, usize)>;
+static PARSER_FN: [ParserFn; 2] = [parse_number, parse_command];
 
 fn split(d: &str) -> Vec<String> {
     let text: Vec<char> = d.chars().collect();
