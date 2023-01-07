@@ -28,3 +28,20 @@ impl Mul for Vector2 {
         Self(self.0 * other.0, self.1 * other.1)
     }
 }
+
+impl Vector2 {
+    pub fn norm(self) -> f64 {
+        (self.0 * self.0 + self.1 * self.1).sqrt()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn norm_cases() {
+        assert_eq!(Vector2(3.0, 4.0).norm(), 5.0);
+        assert_eq!(Vector2(-1.0, 1.0).norm(), 2.0_f64.sqrt());
+    }
+}
