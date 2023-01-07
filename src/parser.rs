@@ -72,16 +72,21 @@ fn parse_number(text: &Vec<char>, index: usize) -> Option<(String, usize)> {
     }
 
     while cursor < len {
-        let c = text.get(cursor);
-        match c {
-            Some('0'..='9') => {
-                cursor += 1;
-                value.push(*c.unwrap());
-            }
-            Some('.') => {
-                cursor += 1;
-                value.push('.');
-            }
+        let op = text.get(cursor);
+        match op {
+            Some(c) => match c {
+                '0'..='9' => {
+                    cursor += 1;
+                    value.push(*c);
+                }
+                '.' => {
+                    cursor += 1;
+                    value.push('.');
+                }
+                _ => {
+                    break;
+                }
+            },
             _ => {
                 break;
             }
@@ -96,7 +101,11 @@ fn parse_number(text: &Vec<char>, index: usize) -> Option<(String, usize)> {
 
 fn parse_command(text: &Vec<char>, index: usize) -> Option<(String, usize)> {
     match text.get(index) {
-        Some('M') => Some((String::from("M"), 1)),
+        Some(c) => match c {
+            'M' | 'm' | 'L' | 'l' | 'H' | 'h' | 'V' | 'v' | 'Q' | 'q' | 'T' | 't' | 'C' | 'c'
+            | 'S' | 's' | 'A' | 'a' | 'Z' | 'z' => Some((String::from(*c), 1)),
+            _ => None,
+        },
         _ => None,
     }
 }
@@ -122,5 +131,31 @@ mod tests {
         assert_eq!(split("M -12-9"), vec!["M", "-12", "-9"]);
         assert_eq!(split("M +12+9"), vec!["M", "12", "9"]);
         assert_eq!(split("M -1.2 1"), vec!["M", "-1.2", "1"]);
+    }
+
+    #[test]
+    fn split_command() {
+        assert_eq!(split("M m"), vec!["M", "m"]);
+        assert_eq!(split("L l"), vec!["L", "l"]);
+        assert_eq!(split("H h"), vec!["H", "h"]);
+        assert_eq!(split("V v"), vec!["V", "v"]);
+        assert_eq!(split("Q q"), vec!["Q", "q"]);
+        assert_eq!(split("T t"), vec!["T", "t"]);
+        assert_eq!(split("C c"), vec!["C", "c"]);
+        assert_eq!(split("S s"), vec!["S", "s"]);
+        assert_eq!(split("A a"), vec!["A", "a"]);
+        assert_eq!(split("Z z"), vec!["Z", "z"]);
+    }
+
+    #[test]
+    fn split_cases() {
+        assert_eq!(
+            split("M1 2L34,56z"),
+            vec!["M", "1", "2", "L", "34", "56", "z"]
+        );
+        assert_eq!(
+            split("M-1.1,2.2L3.4-5.6z"),
+            vec!["M", "-1.1", "2.2", "L", "3.4", "-5.6", "z"]
+        );
     }
 }
