@@ -14,34 +14,55 @@ impl PathSegment {
 }
 
 pub fn get_path_length(segments: &Vec<PathSegment>) -> f64 {
+    let mut length: f64 = 0.0;
+    let mut start: Option<Vector2> = None;
     let mut current = Vector2(0.0, 0.0);
     let mut control: Option<Vector2> = None;
-    let mut length: f64 = 0.0;
 
     for seg in segments {
         match seg._type.as_str() {
+            "Z" | "z" => match start {
+                Some(s) => {
+                    length += (current - s).norm();
+                    current = s;
+                    control = None;
+                }
+                _ => {}
+            },
             "M" => {
-                let (d, p) = get_length_m(&seg.values);
-                length += d;
+                let p = get_point_m(&seg.values);
+                start = Some(p);
                 current = p;
                 control = None;
             }
             "m" => {
-                let (d, p) = get_length_m_relative(&seg.values, &current);
-                length += d;
+                let p = get_point_m(&seg.values) + current;
+                start = Some(p);
                 current = p;
                 control = None;
             }
             "L" => {
-                let (d, p) = get_length_l(&seg.values, &current);
-                length += d;
-                current = p;
+                if start.is_none() {
+                    let p = get_point_m(&seg.values);
+                    start = Some(p);
+                    current = p;
+                } else {
+                    let (d, p) = get_length_l(&seg.values, &current);
+                    length += d;
+                    current = p;
+                }
                 control = None;
             }
             "l" => {
-                let (d, p) = get_length_l_relative(&seg.values, &current);
-                length += d;
-                current = p;
+                if start.is_none() {
+                    let p = get_point_m(&seg.values);
+                    start = Some(p);
+                    current = p;
+                } else {
+                    let (d, p) = get_length_l_relative(&seg.values, &current);
+                    length += d;
+                    current = p;
+                }
                 control = None;
             }
             "H" | "h" => {
@@ -63,14 +84,8 @@ pub fn get_path_length(segments: &Vec<PathSegment>) -> f64 {
     length
 }
 
-fn get_length_m(values: &Vec<f64>) -> (f64, Vector2) {
-    let v = Vector2(*values.get(0).unwrap(), *values.get(1).unwrap());
-    (0.0, v)
-}
-
-fn get_length_m_relative(values: &Vec<f64>, from: &Vector2) -> (f64, Vector2) {
-    let v = Vector2(*values.get(0).unwrap(), *values.get(1).unwrap());
-    (0.0, v + *from)
+fn get_point_m(values: &Vec<f64>) -> Vector2 {
+    Vector2(*values.get(0).unwrap(), *values.get(1).unwrap())
 }
 
 fn get_length_l(values: &Vec<f64>, from: &Vector2) -> (f64, Vector2) {
@@ -96,6 +111,47 @@ fn get_length_v(values: &Vec<f64>, from: &Vector2) -> (f64, Vector2) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn get_path_segment_length_z() {
+        assert_eq!(
+            get_path_length(&vec![
+                PathSegment::new("M".to_string(), vec![1.0, 1.0]),
+                PathSegment::new("L".to_string(), vec![4.0, 1.0]),
+                PathSegment::new("L".to_string(), vec![4.0, 4.0]),
+                PathSegment::new("L".to_string(), vec![1.0, 4.0]),
+                PathSegment::new("Z".to_string(), vec![]),
+                PathSegment::new("m".to_string(), vec![10.0, 10.0]),
+                PathSegment::new("l".to_string(), vec![3.0, 0.0]),
+                PathSegment::new("l".to_string(), vec![0.0, 3.0]),
+                PathSegment::new("l".to_string(), vec![-3.0, 0.0]),
+                PathSegment::new("z".to_string(), vec![]),
+            ]),
+            24.0
+        );
+
+        assert_eq!(
+            get_path_length(&vec![
+                PathSegment::new("L".to_string(), vec![1.0, 1.0]),
+                PathSegment::new("L".to_string(), vec![4.0, 1.0]),
+                PathSegment::new("L".to_string(), vec![4.0, 4.0]),
+                PathSegment::new("L".to_string(), vec![1.0, 4.0]),
+                PathSegment::new("Z".to_string(), vec![]),
+            ]),
+            12.0
+        );
+
+        assert_eq!(
+            get_path_length(&vec![
+                PathSegment::new("l".to_string(), vec![1.0, 1.0]),
+                PathSegment::new("l".to_string(), vec![3.0, 0.0]),
+                PathSegment::new("l".to_string(), vec![0.0, 3.0]),
+                PathSegment::new("l".to_string(), vec![-3.0, 0.0]),
+                PathSegment::new("z".to_string(), vec![]),
+            ]),
+            12.0
+        );
+    }
 
     #[test]
     fn get_path_segment_length_m() {
