@@ -90,6 +90,19 @@ pub fn get_path_length(segments: &Vec<PathSegment>) -> f64 {
                 current = p2;
                 control = Some(p1);
             }
+            "T" => {
+                let (d, p1, p2) = get_length_t(&seg.values, &current, &control.unwrap_or(current));
+                length += d;
+                current = p2;
+                control = Some(p1);
+            }
+            "t" => {
+                let (d, p1, p2) =
+                    get_length_t_relative(&seg.values, &current, &control.unwrap_or(current));
+                length += d;
+                current = p2;
+                control = Some(p1);
+            }
             _ => {}
         };
     }
@@ -136,6 +149,30 @@ fn get_length_q(values: &Vec<f64>, from: &Vector2) -> (f64, Vector2, Vector2) {
 fn get_length_q_relative(values: &Vec<f64>, from: &Vector2) -> (f64, Vector2, Vector2) {
     let p1 = Vector2(*values.get(0).unwrap(), *values.get(1).unwrap()) + *from;
     let p2 = Vector2(*values.get(2).unwrap(), *values.get(3).unwrap()) + *from;
+    (
+        vector::get_polyline_length(&vector::get_bezier_q_points(from, &p1, &p2, SPLIT_COUNT)),
+        p1,
+        p2,
+    )
+}
+
+fn get_length_t(values: &Vec<f64>, from: &Vector2, control: &Vector2) -> (f64, Vector2, Vector2) {
+    let p1 = from.multi(2.0) - *control;
+    let p2 = Vector2(*values.get(0).unwrap(), *values.get(1).unwrap());
+    (
+        vector::get_polyline_length(&vector::get_bezier_q_points(from, &p1, &p2, SPLIT_COUNT)),
+        p1,
+        p2,
+    )
+}
+
+fn get_length_t_relative(
+    values: &Vec<f64>,
+    from: &Vector2,
+    control: &Vector2,
+) -> (f64, Vector2, Vector2) {
+    let p1 = from.multi(2.0) - *control;
+    let p2 = Vector2(*values.get(0).unwrap(), *values.get(1).unwrap()) + *from;
     (
         vector::get_polyline_length(&vector::get_bezier_q_points(from, &p1, &p2, SPLIT_COUNT)),
         p1,
@@ -286,6 +323,47 @@ mod tests {
             ])
             .round(),
             16.0
+        );
+    }
+
+    #[test]
+    fn get_path_segment_length_t() {
+        assert_eq!(
+            get_path_length(&vec![
+                PathSegment::new("M".to_string(), vec![10.0, 10.0]),
+                PathSegment::new("Q".to_string(), vec![20.0, 10.0, 20.0, 20.0]),
+                PathSegment::new("T".to_string(), vec![30.0, 20.0]),
+            ])
+            .round(),
+            32.0
+        );
+        assert_eq!(
+            get_path_length(&vec![
+                PathSegment::new("M".to_string(), vec![10.0, 10.0]),
+                PathSegment::new("T".to_string(), vec![20.0, 10.0]),
+            ])
+            .round(),
+            10.0,
+            "should treat the point as the control if previous control doesn't exist"
+        );
+
+        assert_eq!(
+            get_path_length(&vec![
+                PathSegment::new("M".to_string(), vec![10.0, 10.0]),
+                PathSegment::new("q".to_string(), vec![10.0, 0.0, 10.0, 10.0]),
+                PathSegment::new("t".to_string(), vec![10.0, 0.0]),
+            ])
+            .round(),
+            32.0
+        );
+        assert_eq!(
+            get_path_length(&vec![
+                PathSegment::new("M".to_string(), vec![10.0, 10.0]),
+                PathSegment::new("t".to_string(), vec![10.0, 0.0]),
+            ])
+            .round(),
+            10.0,
+            "should treat the point as the control if previous control doesn't exist"
         );
     }
 }
