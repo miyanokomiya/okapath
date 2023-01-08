@@ -1,3 +1,4 @@
+use crate::vector;
 use crate::vector::Vector2;
 
 // https://svgwg.org/specs/paths/#InterfaceSVGPathSegment
@@ -77,6 +78,18 @@ pub fn get_path_length(segments: &Vec<PathSegment>) -> f64 {
                 current = p;
                 control = None;
             }
+            "Q" => {
+                let (d, p1, p2) = get_length_q(&seg.values, &current);
+                length += d;
+                current = p2;
+                control = Some(p1);
+            }
+            "q" => {
+                let (d, p1, p2) = get_length_q_relative(&seg.values, &current);
+                length += d;
+                current = p2;
+                control = Some(p1);
+            }
             _ => {}
         };
     }
@@ -106,6 +119,28 @@ fn get_length_h(values: &Vec<f64>, from: &Vector2) -> (f64, Vector2) {
 fn get_length_v(values: &Vec<f64>, from: &Vector2) -> (f64, Vector2) {
     let d = *values.get(0).unwrap();
     (d, Vector2(from.0, d + from.1))
+}
+
+static SPLIT_COUNT: usize = 20;
+
+fn get_length_q(values: &Vec<f64>, from: &Vector2) -> (f64, Vector2, Vector2) {
+    let p1 = Vector2(*values.get(0).unwrap(), *values.get(1).unwrap());
+    let p2 = Vector2(*values.get(2).unwrap(), *values.get(3).unwrap());
+    (
+        vector::get_polyline_length(&vector::get_bezier_q_points(from, &p1, &p2, SPLIT_COUNT)),
+        p1,
+        p2,
+    )
+}
+
+fn get_length_q_relative(values: &Vec<f64>, from: &Vector2) -> (f64, Vector2, Vector2) {
+    let p1 = Vector2(*values.get(0).unwrap(), *values.get(1).unwrap()) + *from;
+    let p2 = Vector2(*values.get(2).unwrap(), *values.get(3).unwrap()) + *from;
+    (
+        vector::get_polyline_length(&vector::get_bezier_q_points(from, &p1, &p2, SPLIT_COUNT)),
+        p1,
+        p2,
+    )
 }
 
 #[cfg(test)]
@@ -230,6 +265,27 @@ mod tests {
                 PathSegment::new("v".to_string(), vec![9.0]),
             ]),
             9.0
+        );
+    }
+
+    #[test]
+    fn get_path_segment_length_q() {
+        assert_eq!(
+            get_path_length(&vec![
+                PathSegment::new("M".to_string(), vec![10.0, 10.0]),
+                PathSegment::new("Q".to_string(), vec![20.0, 10.0, 20.0, 20.0]),
+            ])
+            .round(),
+            16.0
+        );
+
+        assert_eq!(
+            get_path_length(&vec![
+                PathSegment::new("M".to_string(), vec![10.0, 10.0]),
+                PathSegment::new("q".to_string(), vec![10.0, 0.0, 10.0, 10.0]),
+            ])
+            .round(),
+            16.0
         );
     }
 }
