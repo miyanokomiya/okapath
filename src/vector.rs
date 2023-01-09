@@ -204,7 +204,6 @@ impl Arc {
         let v = Vector2((-a.0 - b.0) / rxa, (-a.1 - b.1) / rya);
         let theta = Vector2(1.0, 0.0).radian(u);
         let dtheta_tmp = u.radian(v) % (2.0 * PI);
-        println!("{:?} {:?} {:?}", u, v, dtheta_tmp);
         let dtheta = if !sweep && 0.0 < dtheta_tmp {
             dtheta_tmp - (2.0 * PI)
         } else if sweep && dtheta_tmp < 0.0 {
@@ -401,12 +400,31 @@ mod tests {
         assert_eq!(a0.theta.to_degrees().round(), 90.0);
         assert_eq!(a0.dtheta.to_degrees().round(), -90.0);
 
-        let a0 = Arc::new(p0, 10.0, 5.0, -90.0, false, false, Vector2(5.0, 10.0));
-        assert_eq!(a0.rx, 10.0);
-        assert_eq!(a0.ry, 5.0);
+        let a1 = Arc::new(p0, 10.0, 5.0, -90.0, false, false, Vector2(5.0, 10.0));
+        assert_eq!(a1.rx, 10.0);
+        assert_eq!(a1.ry, 5.0);
+        assert_eq!(a1.c, Vector2(5.0, 0.0));
+        assert_eq!(a1.theta.to_degrees().round(), -90.0);
+        assert_eq!(a1.dtheta.to_degrees().round(), -90.0);
+    }
+
+    #[test]
+    fn arc_new_fallbacks() {
+        let p0 = Vector2(0.0, 0.0);
+
+        let a0 = Arc::new(p0, -5.0, -10.0, 0.0, false, false, Vector2(5.0, 10.0));
+        assert_eq!(a0.rx, 5.0);
+        assert_eq!(a0.ry, 10.0);
         assert_eq!(a0.c, Vector2(5.0, 0.0));
-        assert_eq!(a0.theta.to_degrees().round(), -90.0);
+        assert_eq!(a0.theta.to_degrees().round(), 180.0);
         assert_eq!(a0.dtheta.to_degrees().round(), -90.0);
+
+        let a1 = Arc::new(p0, 5.0, 5.0, 0.0, false, false, Vector2(20.0, 0.0));
+        assert_eq!(a1.rx, 10.0);
+        assert_eq!(a1.ry, 10.0);
+        assert_eq!(a1.c, Vector2(10.0, 0.0));
+        assert_eq!(a1.theta.to_degrees().round(), 180.0);
+        assert_eq!(a1.dtheta.to_degrees().round(), -180.0);
     }
 
     #[test]
