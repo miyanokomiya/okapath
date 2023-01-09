@@ -1,5 +1,5 @@
 use crate::vector;
-use crate::vector::Vector2;
+use crate::vector::{Bezier2, Bezier3, Lerpable, Vector2};
 
 // https://svgwg.org/specs/paths/#InterfaceSVGPathSegment
 #[derive(Debug, PartialEq)]
@@ -140,7 +140,7 @@ fn get_length_q(values: &Vec<f64>, from: &Vector2) -> (f64, Vector2, Vector2) {
     let p1 = Vector2(*values.get(0).unwrap(), *values.get(1).unwrap());
     let p2 = Vector2(*values.get(2).unwrap(), *values.get(3).unwrap());
     (
-        vector::get_polyline_length(&vector::get_bezier_q_points(from, &p1, &p2, SPLIT_COUNT)),
+        Bezier2::new(*from, p1, p2).get_appro_length(SPLIT_COUNT),
         p1,
         p2,
     )
@@ -150,7 +150,7 @@ fn get_length_q_relative(values: &Vec<f64>, from: &Vector2) -> (f64, Vector2, Ve
     let p1 = Vector2(*values.get(0).unwrap(), *values.get(1).unwrap()) + *from;
     let p2 = Vector2(*values.get(2).unwrap(), *values.get(3).unwrap()) + *from;
     (
-        vector::get_polyline_length(&vector::get_bezier_q_points(from, &p1, &p2, SPLIT_COUNT)),
+        Bezier2::new(*from, p1, p2).get_appro_length(SPLIT_COUNT),
         p1,
         p2,
     )
@@ -160,7 +160,7 @@ fn get_length_t(values: &Vec<f64>, from: &Vector2, control: &Vector2) -> (f64, V
     let p1 = from.multi(2.0) - *control;
     let p2 = Vector2(*values.get(0).unwrap(), *values.get(1).unwrap());
     (
-        vector::get_polyline_length(&vector::get_bezier_q_points(from, &p1, &p2, SPLIT_COUNT)),
+        Bezier2::new(*from, p1, p2).get_appro_length(SPLIT_COUNT),
         p1,
         p2,
     )
@@ -174,7 +174,7 @@ fn get_length_t_relative(
     let p1 = from.multi(2.0) - *control;
     let p2 = Vector2(*values.get(0).unwrap(), *values.get(1).unwrap()) + *from;
     (
-        vector::get_polyline_length(&vector::get_bezier_q_points(from, &p1, &p2, SPLIT_COUNT)),
+        Bezier2::new(*from, p1, p2).get_appro_length(SPLIT_COUNT),
         p1,
         p2,
     )

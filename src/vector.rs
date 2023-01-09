@@ -51,38 +51,8 @@ pub fn get_polyline_length(points: &Vec<Vector2>) -> f64 {
     length
 }
 
-pub fn get_bezier_q_point(p0: &Vector2, p1: &Vector2, p2: &Vector2, t: f64) -> Vector2 {
-    let a = 1.0 - t;
-    p0.multi(a * a) + p1.multi(2.0 * t * a) + p2.multi(t * t)
-}
-
 pub fn get_bezier_q_points(p0: &Vector2, p1: &Vector2, p2: &Vector2, split: usize) -> Vec<Vector2> {
-    if split <= 1 {
-        return vec![*p0, *p2];
-    }
-
-    let step = 1.0 / split as f64;
-    let mut points: Vec<Vector2> = vec![];
-
-    for i in 0..=split {
-        let q = get_bezier_q_point(p0, p1, p2, step * i as f64);
-        points.push(q);
-    }
-
-    points
-}
-
-pub fn get_bezier_c_point(
-    p0: &Vector2,
-    p1: &Vector2,
-    p2: &Vector2,
-    p3: &Vector2,
-    t: f64,
-) -> Vector2 {
-    let a = 1.0 - t;
-    let aa = a * a;
-    let tt = t * t;
-    p0.multi(aa * a) + p1.multi(3.0 * aa * t) + p2.multi(3.0 * a * tt) + p3.multi(tt * t)
+    Bezier2::new(*p0, *p1, *p2).get_appro_points(split)
 }
 
 pub fn get_bezier_c_points(
@@ -92,19 +62,75 @@ pub fn get_bezier_c_points(
     p3: &Vector2,
     split: usize,
 ) -> Vec<Vector2> {
-    if split <= 1 {
-        return vec![*p0, *p3];
+    Bezier3::new(*p0, *p1, *p2, *p3).get_appro_points(split)
+}
+
+pub trait Lerpable {
+    fn lerp(&self, t: f64) -> Vector2;
+
+    fn get_appro_length(&self, split: usize) -> f64 {
+        get_polyline_length(&self.get_appro_points(split))
     }
 
-    let step = 1.0 / split as f64;
-    let mut points: Vec<Vector2> = vec![];
+    fn get_appro_points(&self, split: usize) -> Vec<Vector2> {
+        if split <= 1 {
+            return vec![self.lerp(0.0), self.lerp(1.0)];
+        }
 
-    for i in 0..=split {
-        let q = get_bezier_c_point(p0, p1, p2, p3, step * i as f64);
-        points.push(q);
+        let step = 1.0 / split as f64;
+        let mut points: Vec<Vector2> = vec![];
+
+        for i in 0..=split {
+            let q = self.lerp(step * i as f64);
+            points.push(q);
+        }
+
+        points
     }
+}
 
-    points
+pub struct Bezier2 {
+    p0: Vector2,
+    p1: Vector2,
+    p2: Vector2,
+}
+
+impl Bezier2 {
+    pub fn new(p0: Vector2, p1: Vector2, p2: Vector2) -> Self {
+        Bezier2 { p0, p1, p2 }
+    }
+}
+
+impl Lerpable for Bezier2 {
+    fn lerp(&self, t: f64) -> Vector2 {
+        let a = 1.0 - t;
+        self.p0.multi(a * a) + self.p1.multi(2.0 * t * a) + self.p2.multi(t * t)
+    }
+}
+
+pub struct Bezier3 {
+    p0: Vector2,
+    p1: Vector2,
+    p2: Vector2,
+    p3: Vector2,
+}
+
+impl Bezier3 {
+    pub fn new(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2) -> Self {
+        Bezier3 { p0, p1, p2, p3 }
+    }
+}
+
+impl Lerpable for Bezier3 {
+    fn lerp(&self, t: f64) -> Vector2 {
+        let a = 1.0 - t;
+        let aa = a * a;
+        let tt = t * t;
+        self.p0.multi(aa * a)
+            + self.p1.multi(3.0 * aa * t)
+            + self.p2.multi(3.0 * a * tt)
+            + self.p3.multi(tt * t)
+    }
 }
 
 #[cfg(test)]
@@ -135,35 +161,16 @@ mod tests {
     }
 
     #[test]
-    fn get_bezier_q_point_cases() {
+    fn bezier_q_cases() {
         let p0 = Vector2(0.0, 0.0);
         let p1 = Vector2(10.0, 0.0);
         let p2 = Vector2(10.0, 10.0);
-        assert_eq!(get_bezier_q_point(&p0, &p1, &p2, 0.0), Vector2(0.0, 0.0));
-        assert_eq!(
-            get_bezier_q_point(&p0, &p1, &p2, 0.25),
-            Vector2(4.375, 0.625)
-        );
-        assert_eq!(get_bezier_q_point(&p0, &p1, &p2, 0.5), Vector2(7.5, 2.5));
-        assert_eq!(
-            get_bezier_q_point(&p0, &p1, &p2, 0.75),
-            Vector2(9.375, 5.625)
-        );
-        assert_eq!(get_bezier_q_point(&p0, &p1, &p2, 1.0), Vector2(10.0, 10.0));
-    }
+        let target = Bezier2::new(p0, p1, p2);
 
-    #[test]
-    fn get_bezier_q_points_cases() {
-        let p0 = Vector2(0.0, 0.0);
-        let p1 = Vector2(10.0, 0.0);
-        let p2 = Vector2(10.0, 10.0);
-        assert_eq!(get_bezier_q_points(&p0, &p1, &p2, 1), vec![p0, p2]);
+        assert_eq!(target.get_appro_points(1), vec![p0, p2]);
+        assert_eq!(target.get_appro_points(2), vec![p0, Vector2(7.5, 2.5), p2]);
         assert_eq!(
-            get_bezier_q_points(&p0, &p1, &p2, 2),
-            vec![p0, Vector2(7.5, 2.5), p2]
-        );
-        assert_eq!(
-            get_bezier_q_points(&p0, &p1, &p2, 4),
+            target.get_appro_points(4),
             vec![
                 p0,
                 Vector2(4.375, 0.625),
@@ -175,18 +182,17 @@ mod tests {
     }
 
     #[test]
-    fn get_bezier_c_points_cases() {
+    fn bezier_c_cases() {
         let p0 = Vector2(0.0, 0.0);
         let p1 = Vector2(10.0, 0.0);
         let p2 = Vector2(0.0, 10.0);
         let p3 = Vector2(10.0, 10.0);
-        assert_eq!(get_bezier_c_points(&p0, &p1, &p2, &p3, 1), vec![p0, p3]);
+        let target = Bezier3::new(p0, p1, p2, p3);
+
+        assert_eq!(target.get_appro_points(1), vec![p0, p3]);
+        assert_eq!(target.get_appro_points(2), vec![p0, Vector2(5.0, 5.0), p3]);
         assert_eq!(
-            get_bezier_c_points(&p0, &p1, &p2, &p3, 2),
-            vec![p0, Vector2(5.0, 5.0), p3]
-        );
-        assert_eq!(
-            get_bezier_c_points(&p0, &p1, &p2, &p3, 4),
+            target.get_appro_points(4),
             vec![
                 p0,
                 Vector2(4.375, 1.5625),
