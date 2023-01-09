@@ -103,6 +103,31 @@ pub fn get_path_length(segments: &Vec<PathSegment>) -> f64 {
                 current = p2;
                 control = Some(p1);
             }
+            "C" => {
+                let (d, p1, p2) = get_length_c(&seg.values, &current);
+                length += d;
+                current = p2;
+                control = Some(p1);
+            }
+            "c" => {
+                let (d, p1, p2) = get_length_c_relative(&seg.values, &current);
+                length += d;
+                current = p2;
+                control = Some(p1);
+            }
+            "S" => {
+                let (d, p1, p2) = get_length_s(&seg.values, &current, &control.unwrap_or(current));
+                length += d;
+                current = p2;
+                control = Some(p1);
+            }
+            "s" => {
+                let (d, p1, p2) =
+                    get_length_s_relative(&seg.values, &current, &control.unwrap_or(current));
+                length += d;
+                current = p2;
+                control = Some(p1);
+            }
             _ => {}
         };
     }
@@ -175,6 +200,54 @@ fn get_length_t_relative(
     let p2 = Vector2(*values.get(0).unwrap(), *values.get(1).unwrap()) + *from;
     (
         Bezier2::new(*from, p1, p2).get_appro_length(SPLIT_COUNT),
+        p1,
+        p2,
+    )
+}
+
+fn get_length_c(values: &Vec<f64>, from: &Vector2) -> (f64, Vector2, Vector2) {
+    let p1 = Vector2(*values.get(0).unwrap(), *values.get(1).unwrap());
+    let p2 = Vector2(*values.get(2).unwrap(), *values.get(3).unwrap());
+    let p3 = Vector2(*values.get(4).unwrap(), *values.get(5).unwrap());
+    (
+        Bezier3::new(*from, p1, p2, p3).get_appro_length(SPLIT_COUNT),
+        p1,
+        p2,
+    )
+}
+
+fn get_length_c_relative(values: &Vec<f64>, from: &Vector2) -> (f64, Vector2, Vector2) {
+    let p1 = Vector2(*values.get(0).unwrap(), *values.get(1).unwrap()) + *from;
+    let p2 = Vector2(*values.get(2).unwrap(), *values.get(3).unwrap()) + *from;
+    let p3 = Vector2(*values.get(4).unwrap(), *values.get(5).unwrap()) + *from;
+    (
+        Bezier3::new(*from, p1, p2, p3).get_appro_length(SPLIT_COUNT),
+        p1,
+        p2,
+    )
+}
+
+fn get_length_s(values: &Vec<f64>, from: &Vector2, control: &Vector2) -> (f64, Vector2, Vector2) {
+    let p1 = from.multi(2.0) - *control;
+    let p2 = Vector2(*values.get(0).unwrap(), *values.get(1).unwrap());
+    let p3 = Vector2(*values.get(2).unwrap(), *values.get(3).unwrap());
+    (
+        Bezier3::new(*from, p1, p2, p3).get_appro_length(SPLIT_COUNT),
+        p1,
+        p2,
+    )
+}
+
+fn get_length_s_relative(
+    values: &Vec<f64>,
+    from: &Vector2,
+    control: &Vector2,
+) -> (f64, Vector2, Vector2) {
+    let p1 = from.multi(2.0) - *control;
+    let p2 = Vector2(*values.get(0).unwrap(), *values.get(1).unwrap()) + *from;
+    let p3 = Vector2(*values.get(2).unwrap(), *values.get(3).unwrap()) + *from;
+    (
+        Bezier3::new(*from, p1, p2, p3).get_appro_length(SPLIT_COUNT),
         p1,
         p2,
     )
@@ -364,6 +437,50 @@ mod tests {
             .round(),
             10.0,
             "should treat the point as the control if previous control doesn't exist"
+        );
+    }
+
+    #[test]
+    fn get_path_segment_length_c() {
+        assert_eq!(
+            get_path_length(&vec![
+                PathSegment::new("M".to_string(), vec![10.0, 10.0]),
+                PathSegment::new("C".to_string(), vec![20.0, 10.0, 10.0, 20.0, 20.0, 20.0]),
+            ])
+            .round(),
+            17.0
+        );
+
+        assert_eq!(
+            get_path_length(&vec![
+                PathSegment::new("M".to_string(), vec![10.0, 10.0]),
+                PathSegment::new("c".to_string(), vec![10.0, 0.0, 0.0, 10.0, 10.0, 10.0]),
+            ])
+            .round(),
+            17.0
+        );
+    }
+
+    #[test]
+    fn get_path_segment_length_s() {
+        assert_eq!(
+            get_path_length(&vec![
+                PathSegment::new("M".to_string(), vec![10.0, 10.0]),
+                PathSegment::new("Q".to_string(), vec![20.0, 10.0, 20.0, 20.0]),
+                PathSegment::new("S".to_string(), vec![30.0, 20.0, 30.0, 30.0]),
+            ])
+            .round(),
+            33.0
+        );
+
+        assert_eq!(
+            get_path_length(&vec![
+                PathSegment::new("M".to_string(), vec![10.0, 10.0]),
+                PathSegment::new("q".to_string(), vec![10.0, 0.0, 10.0, 10.0]),
+                PathSegment::new("s".to_string(), vec![10.0, 0.0, 10.0, 10.0]),
+            ])
+            .round(),
+            33.0
         );
     }
 }
