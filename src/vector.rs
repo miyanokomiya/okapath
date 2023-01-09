@@ -160,9 +160,6 @@ pub struct Arc {
     p0: Vector2,
     rx: f64,
     ry: f64,
-    rotation: f64,
-    large: bool,
-    sweep: bool,
     p1: Vector2,
 
     c: Vector2,
@@ -220,9 +217,6 @@ impl Arc {
             p0,
             rx: rxa,
             ry: rya,
-            rotation,
-            large,
-            sweep,
             p1,
             c,
             theta,
@@ -356,28 +350,22 @@ mod tests {
         assert_eq!(a0.p0, p0);
         assert_eq!(a0.rx, 5.0);
         assert_eq!(a0.ry, 5.0);
-        assert_eq!(a0.large, false);
-        assert_eq!(a0.sweep, false);
         assert_eq!(a0.p1, p1);
         assert_eq!(a0.c, Vector2(5.0, 0.0));
         assert_eq!(a0.theta.to_degrees().round(), 180.0);
         assert_eq!(a0.dtheta.to_degrees().round(), -90.0);
 
         let a1 = Arc::new(p0, 5.0, 5.0, 0.0, true, false, p1);
-        assert_eq!(a1.large, true);
         assert_eq!(a1.c, Vector2(0.0, 5.0));
         assert_eq!(a1.theta.to_degrees().round(), -90.0);
         assert_eq!(a1.dtheta.to_degrees().round(), -270.0);
 
         let a2 = Arc::new(p0, 5.0, 5.0, 0.0, false, true, p1);
-        assert_eq!(a2.sweep, true);
         assert_eq!(a2.c, Vector2(0.0, 5.0));
         assert_eq!(a2.theta.to_degrees().round(), -90.0);
         assert_eq!(a2.dtheta.to_degrees().round(), 90.0);
 
         let a3 = Arc::new(p0, 5.0, 5.0, 0.0, true, true, p1);
-        assert_eq!(a3.large, true);
-        assert_eq!(a3.sweep, true);
         assert_eq!(a3.c, Vector2(5.0, 0.0));
         assert_eq!(a3.theta.to_degrees().round(), 180.0);
         assert_eq!(a3.dtheta.to_degrees().round(), 270.0);
