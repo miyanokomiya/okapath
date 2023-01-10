@@ -32,7 +32,7 @@ impl Mul for Vector2 {
 
 impl Vector2 {
     pub fn norm(self) -> f64 {
-        (self.0 * self.0 + self.1 * self.1).sqrt()
+        self.dot(self).sqrt()
     }
 
     pub fn multi(self, v: f64) -> Self {

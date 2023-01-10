@@ -6,7 +6,7 @@ pub fn parse(d: &str) -> Vec<PathSegment> {
 
 fn to_segments(src: &Vec<String>) -> Vec<PathSegment> {
     let mut ret: Vec<PathSegment> = vec![];
-    let mut command = "M";
+    let mut command = 'M';
     let mut param_count = 2;
     let mut cursor = 0;
     let len = src.len();
@@ -14,18 +14,16 @@ fn to_segments(src: &Vec<String>) -> Vec<PathSegment> {
     while cursor < len {
         let mut current_cursor = cursor;
 
-        if is_command(&src[current_cursor]) {
-            command = &src[current_cursor];
-            param_count = get_param_count(command);
-            current_cursor += 1;
+        match is_command(src[current_cursor].chars().next().unwrap()) {
+            Some(c) => {
+                command = c;
+                param_count = get_param_count(command);
+                current_cursor += 1;
+            }
+            None => {}
         }
-
         if current_cursor + param_count > len {
-            panic!(
-                "Lack of parameter: {} {}",
-                command,
-                src[current_cursor..].join(" ")
-            );
+            panic!("Lack of parameter: {}", command);
         }
 
         let values: Vec<f64> = src[current_cursor..(current_cursor + param_count)]
@@ -35,7 +33,7 @@ fn to_segments(src: &Vec<String>) -> Vec<PathSegment> {
                 Err(_) => panic!("Unexpected parameter: {}", s),
             })
             .collect();
-        ret.push(PathSegment::new(command.to_string(), values));
+        ret.push(PathSegment::new(command, values));
         current_cursor += param_count;
 
         if current_cursor == cursor {
@@ -47,25 +45,22 @@ fn to_segments(src: &Vec<String>) -> Vec<PathSegment> {
     ret
 }
 
-fn get_param_count(command: &str) -> usize {
+fn get_param_count(command: char) -> usize {
     match command {
-        "M" | "m" | "L" | "l" => 2,
-        "H" | "h" | "V" | "v" => 1,
-        "Q" | "q" => 4,
-        "T" | "t" => 2,
-        "C" | "c" => 6,
-        "S" | "s" => 4,
-        "A" | "a" => 7,
-        "Z" | "z" => 0,
+        'H' | 'h' | 'V' | 'v' => 1,
+        'M' | 'm' | 'L' | 'l' | 'T' | 't' => 2,
+        'Q' | 'q' | 'S' | 's' => 4,
+        'C' | 'c' => 6,
+        'A' | 'a' => 7,
         _ => 0,
     }
 }
 
-fn is_command(text: &str) -> bool {
-    match text {
-        "M" | "m" | "L" | "l" | "H" | "h" | "V" | "v" | "Q" | "q" | "T" | "t" | "C" | "c" | "S"
-        | "s" | "A" | "a" | "Z" | "z" => true,
-        _ => false,
+fn is_command(c: char) -> Option<char> {
+    match c {
+        'M' | 'm' | 'L' | 'l' | 'H' | 'h' | 'V' | 'v' | 'Q' | 'q' | 'T' | 't' | 'C' | 'c' | 'S'
+        | 's' | 'A' | 'a' | 'Z' | 'z' => Some(c),
+        _ => None,
     }
 }
 
@@ -74,12 +69,11 @@ static PARSER_FN: [ParserFn; 2] = [parse_number, parse_command];
 
 fn split(d: &str) -> Vec<String> {
     let text: Vec<char> = d.chars().collect();
-    let len = text.len();
     let mut cursor = 0;
     let mut ret: Vec<String> = vec![];
 
     cursor += drop_whitespace(&text, cursor);
-    while cursor < len {
+    while cursor < text.len() {
         let mut hit = false;
 
         for parser_fn in PARSER_FN {
@@ -104,10 +98,9 @@ fn split(d: &str) -> Vec<String> {
 }
 
 fn drop_whitespace(text: &Vec<char>, index: usize) -> usize {
-    let len = text.len();
     let mut cursor = index;
 
-    while cursor < len {
+    while cursor < text.len() {
         match text.get(cursor) {
             Some(' ' | ',') => {
                 cursor += 1;
@@ -121,7 +114,6 @@ fn drop_whitespace(text: &Vec<char>, index: usize) -> usize {
 }
 
 fn parse_number(text: &Vec<char>, index: usize) -> Option<(String, usize)> {
-    let len = text.len();
     let mut cursor = index;
     let mut value: String = String::new();
 
@@ -136,9 +128,8 @@ fn parse_number(text: &Vec<char>, index: usize) -> Option<(String, usize)> {
         _ => {}
     }
 
-    while cursor < len {
-        let op = text.get(cursor);
-        match op {
+    while cursor < text.len() {
+        match text.get(cursor) {
             Some(c) => match c {
                 '0'..='9' => {
                     cursor += 1;
@@ -184,68 +175,68 @@ mod tests {
         assert_eq!(
             to_segments(&split("M 12 9 L1 -2Z")),
             vec![
-                PathSegment::new("M".to_string(), vec![12.0, 9.0]),
-                PathSegment::new("L".to_string(), vec![1.0, -2.0]),
-                PathSegment::new("Z".to_string(), vec![])
+                PathSegment::new('M', vec![12.0, 9.0]),
+                PathSegment::new('L', vec![1.0, -2.0]),
+                PathSegment::new('Z', vec![])
             ]
         );
 
         assert_eq!(
             to_segments(&split("m 1 2 l3 4z")),
             vec![
-                PathSegment::new("m".to_string(), vec![1.0, 2.0]),
-                PathSegment::new("l".to_string(), vec![3.0, 4.0]),
-                PathSegment::new("z".to_string(), vec![]),
+                PathSegment::new('m', vec![1.0, 2.0]),
+                PathSegment::new('l', vec![3.0, 4.0]),
+                PathSegment::new('z', vec![]),
             ]
         );
 
         assert_eq!(
             to_segments(&split("H 1 V 2 h 3 v 4")),
             vec![
-                PathSegment::new("H".to_string(), vec![1.0]),
-                PathSegment::new("V".to_string(), vec![2.0]),
-                PathSegment::new("h".to_string(), vec![3.0]),
-                PathSegment::new("v".to_string(), vec![4.0]),
+                PathSegment::new('H', vec![1.0]),
+                PathSegment::new('V', vec![2.0]),
+                PathSegment::new('h', vec![3.0]),
+                PathSegment::new('v', vec![4.0]),
             ]
         );
 
         assert_eq!(
             to_segments(&split("Q 1 2 3 4 q 1 2 3 4")),
             vec![
-                PathSegment::new("Q".to_string(), vec![1.0, 2.0, 3.0, 4.0]),
-                PathSegment::new("q".to_string(), vec![1.0, 2.0, 3.0, 4.0]),
+                PathSegment::new('Q', vec![1.0, 2.0, 3.0, 4.0]),
+                PathSegment::new('q', vec![1.0, 2.0, 3.0, 4.0]),
             ]
         );
 
         assert_eq!(
             to_segments(&split("T 1 2 t 1 2")),
             vec![
-                PathSegment::new("T".to_string(), vec![1.0, 2.0]),
-                PathSegment::new("t".to_string(), vec![1.0, 2.0]),
+                PathSegment::new('T', vec![1.0, 2.0]),
+                PathSegment::new('t', vec![1.0, 2.0]),
             ]
         );
 
         assert_eq!(
             to_segments(&split("C 1 2 3 4 5 6 c 1 2 3 4 5 6")),
             vec![
-                PathSegment::new("C".to_string(), vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]),
-                PathSegment::new("c".to_string(), vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]),
+                PathSegment::new('C', vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]),
+                PathSegment::new('c', vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]),
             ]
         );
 
         assert_eq!(
             to_segments(&split("S 1 2 3 4 s 1 2 3 4")),
             vec![
-                PathSegment::new("S".to_string(), vec![1.0, 2.0, 3.0, 4.0]),
-                PathSegment::new("s".to_string(), vec![1.0, 2.0, 3.0, 4.0]),
+                PathSegment::new('S', vec![1.0, 2.0, 3.0, 4.0]),
+                PathSegment::new('s', vec![1.0, 2.0, 3.0, 4.0]),
             ]
         );
 
         assert_eq!(
             to_segments(&split("A 1 2 3 4 5 6 7 a 1 2 3 4 5 6 7")),
             vec![
-                PathSegment::new("A".to_string(), vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]),
-                PathSegment::new("a".to_string(), vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]),
+                PathSegment::new('A', vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]),
+                PathSegment::new('a', vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]),
             ]
         );
     }
@@ -255,10 +246,10 @@ mod tests {
         assert_eq!(
             to_segments(&split("L 12 9 1 2 H 1 2")),
             vec![
-                PathSegment::new("L".to_string(), vec![12.0, 9.0]),
-                PathSegment::new("L".to_string(), vec![1.0, 2.0]),
-                PathSegment::new("H".to_string(), vec![1.0]),
-                PathSegment::new("H".to_string(), vec![2.0])
+                PathSegment::new('L', vec![12.0, 9.0]),
+                PathSegment::new('L', vec![1.0, 2.0]),
+                PathSegment::new('H', vec![1.0]),
+                PathSegment::new('H', vec![2.0])
             ]
         );
     }
@@ -270,7 +261,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Lack of parameter: L 1")]
+    #[should_panic(expected = "Lack of parameter: L")]
     fn to_segments_panic_for_lack_of_parameter() {
         to_segments(&split("L 1"));
     }
