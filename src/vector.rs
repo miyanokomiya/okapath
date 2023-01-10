@@ -70,10 +70,6 @@ pub fn get_polyline_length(points: &Vec<Vector2>) -> f64 {
     length
 }
 
-pub fn get_bezier_q_points(p0: &Vector2, p1: &Vector2, p2: &Vector2, split: usize) -> Vec<Vector2> {
-    Bezier2::new(*p0, *p1, *p2).get_appro_points(split)
-}
-
 pub fn get_bezier_c_points(
     p0: &Vector2,
     p1: &Vector2,
