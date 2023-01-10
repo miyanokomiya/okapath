@@ -12,12 +12,10 @@ use wasm_bindgen::prelude::*;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
-extern "C" {
-    fn alert(s: &str);
-}
+extern "C" {}
 
-#[wasm_bindgen(js_name = getTotalLeng)]
-pub fn get_total_leng(d: &str) -> f64 {
+#[wasm_bindgen(js_name = getTotalLength)]
+pub fn get_total_length(d: &str) -> f64 {
     path::get_path_length(&parser::parse(d))
 }
 
@@ -32,7 +30,7 @@ mod tests {
 
     #[test]
     fn get_path_length_cases() {
-        assert_eq!(get_total_leng("M10 10 L 40 10 L40 50"), 70.0);
-        assert_eq!(get_total_leng("M10 10 L 40 10 L40 50z"), 120.0);
+        assert_eq!(get_total_length("M10 10 L 40 10 L40 50"), 70.0);
+        assert_eq!(get_total_length("M10 10 L 40 10 L40 50z"), 120.0);
     }
 }
